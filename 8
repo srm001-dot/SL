@@ -1,48 +1,80 @@
+import java.util.*;
 import java.math.BigInteger;
-import java.security.SecureRandom;
 
-public class dsaAlg {
+class dsaAlg {
 
-    static SecureRandom r = new SecureRandom();
+    static BigInteger one = BigInteger.ONE;
 
-    public static void main(String[] args) {
+    // Generate a prime q of given bit length
+    static BigInteger generatePrime(int bits, Random r) {
+        BigInteger q;
+        do {
+            q = new BigInteger(bits, r);
+        } while (!q.isProbablePrime(80));
+        return q;
+    }
 
-        BigInteger q = new BigInteger("127");
-        BigInteger p = new BigInteger("1193"); 
-        BigInteger g = new BigInteger("596");
+    // Generate prime p = kq + 1
+    static BigInteger generateP(BigInteger q, Random r) {
+        BigInteger k, p;
+        while (true) {
+            k = new BigInteger(512, r);
+            p = k.multiply(q).add(one);
+            if (p.isProbablePrime(80))
+                return p;
+        }
+    }
 
-        BigInteger x = new BigInteger("77");
+    // Find generator g
+    static BigInteger generateG(BigInteger p, BigInteger q, Random r) {
+        while (true) {
+            BigInteger h = new BigInteger(p.bitLength(), r).mod(p);
+            if (!h.equals(BigInteger.ZERO)) {
+                BigInteger g = h.modPow(p.subtract(one).divide(q), p);
+                if (!g.equals(BigInteger.ONE))
+                    return g;
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        Random r = new Random();
+
+        BigInteger q = generatePrime(64, r);
+        BigInteger p = generateP(q, r);
+        BigInteger g = generateG(p, q, r);
+
+        BigInteger x = new BigInteger(q.bitLength(), r).mod(q);
         BigInteger y = g.modPow(x, p);
 
         BigInteger k;
         do {
-            k = new BigInteger("113");
-        } while (k.mod(q).equals(BigInteger.ZERO));
+            k = new BigInteger(q.bitLength(), r).mod(q);
+        } while (k.equals(BigInteger.ZERO));
 
         BigInteger rVal = g.modPow(k, p).mod(q);
 
-        BigInteger hash = new BigInteger("88");
+        BigInteger h = new BigInteger(q.bitLength(), r);
 
-        BigInteger s = k.modInverse(q)
-                .multiply(hash.add(x.multiply(rVal)))
-                .mod(q);
+        BigInteger kInv = k.modInverse(q);
+        BigInteger s = kInv.multiply(h.add(x.multiply(rVal))).mod(q);
 
         System.out.println("p: " + p);
         System.out.println("q: " + q);
         System.out.println("g: " + g);
         System.out.println("x: " + x);
+        System.out.println("k: " + k);
         System.out.println("y: " + y);
+        System.out.println("hash: " + h);
         System.out.println("r: " + rVal);
         System.out.println("s: " + s);
 
         BigInteger w = s.modInverse(q);
-        BigInteger u1 = hash.multiply(w).mod(q);
+        BigInteger u1 = h.multiply(w).mod(q);
         BigInteger u2 = rVal.multiply(w).mod(q);
 
-        BigInteger v = g.modPow(u1, p)
-                .multiply(y.modPow(u2, p))
-                .mod(p)
-                .mod(q);
+        BigInteger v = g.modPow(u1, p).multiply(y.modPow(u2, p)).mod(p).mod(q);
 
         System.out.println("v: " + v);
 
