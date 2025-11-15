@@ -1,84 +1,104 @@
-import java.io.*;
-import java.nio.file.*;
-import java.security.*;
-import java.util.*;
-
-public class RootHunter {
-
-    private static final Set<String> KNOWN_BAD_HASHES = new HashSet<>(Arrays.asList(
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-    ));
-
-    public static void main(String[] args) {
-        if (args.length != 1) {
-            System.out.println("Usage: java Cv <path-to-scan>");
-            System.exit(1);
-        }
-
-        Path start = Paths.get(args[0]);
-        if (!Files.exists(start)) {
-            System.out.println("Path does not exist: " + start);
-            System.exit(1);
-        }
-
-        List<Path> flagged = new ArrayList<>();
-        List<Path> scanned = new ArrayList<>();
-
-        try {
-            Files.walk(start)
-                .filter(Files::isRegularFile)
-                .forEach(path -> {
-                    try {
-                        String hash = sha256(path);
-                        scanned.add(path);
-                        if (KNOWN_BAD_HASHES.contains(hash)) {
-                            flagged.add(path);
-                            System.out.printf("FLAGGED: %s (sha256=%s)%n", path, hash);
-                        } else {
-                            System.out.printf("OK: %s (sha256=%s)%n", path, hash);
-                        }
-                    } catch (IOException | NoSuchAlgorithmException e) {
-                        System.err.println("Error reading " + path + ": " + e.getMessage());
-                    }
-                });
-        } catch (IOException e) {
-            System.err.println("Error walking path: " + e.getMessage());
-            System.exit(2);
-        }
-
-        System.out.println("\nScan complete.");
-        System.out.println("Files scanned: " + scanned.size());
-        System.out.println("Files flagged: " + flagged.size());
-
-        if (!flagged.isEmpty()) {
-            System.out.println("Flagged files:");
-            flagged.forEach(p -> System.out.println(" - " + p));
-        }
-    }
-
-    private static String sha256(Path path) throws IOException, NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-
-        try (InputStream is = Files.newInputStream(path);
-             BufferedInputStream bis = new BufferedInputStream(is)) {
-
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = bis.read(buffer)) != -1) {
-                digest.update(buffer, 0, read);
-            }
-        }
-
-        byte[] hashed = digest.digest();
-        return bytesToHex(hashed);
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b & 0xff));
-        }
-        return sb.toString();
-    }
-}
+import java.util.Arrays; 
+import java.util.HashMap; 
+import java.util.Map; 
+import java.util.Scanner; 
+ 
+public class ColumnarTranspositionCipher { 
+ 
+    // Helper method to get the permutation order based on the key 
+    private static int[] getPermutationOrder(String key) { 
+        // Create a map to store character and its original index 
+        Map<Character, Integer> keyMap = new HashMap<>(); 
+        for (int i = 0; i < key.length(); i++) { 
+            keyMap.put(key.charAt(i), i); 
+        } 
+ 
+        // Sort the key characters to determine the new column order 
+        char[] sortedKeyChars = key.toCharArray(); 
+        Arrays.sort(sortedKeyChars); 
+ 
+        // Create an array to store the permutation order (original index of sorted characters) 
+        int[] permutationOrder = new int[key.length()]; 
+        for (int i = 0; i < key.length(); i++) { 
+            permutationOrder[i] = keyMap.get(sortedKeyChars[i]); 
+        } 
+        return permutationOrder; 
+    } 
+ 
+    public static String encrypt(String plaintext, String key) { 
+        plaintext = plaintext.replaceAll(" ", "").toUpperCase(); // Remove spaces and convert to 
+uppercase 
+        key = key.toUpperCase(); 
+ 
+        int numCols = key.length(); 
+        int numRows = (int) Math.ceil((double) plaintext.length() / numCols); 
+ 
+        char[][] matrix = new char[numRows][numCols]; 
+        int k = 0; 
+        for (int i = 0; i < numRows; i++) { 
+            for (int j = 0; j < numCols; j++) { 
+                if (k < plaintext.length()) { 
+                    matrix[i][j] = plaintext.charAt(k++); 
+                } else { 
+                    matrix[i][j] = 'X'; // Padding with 'X' 
+                } 
+            } 
+        } 
+ 
+        int[] permutationOrder = getPermutationOrder(key); 
+        StringBuilder ciphertext = new StringBuilder(); 
+ 
+        for (int colIndex : permutationOrder) { 
+            for (int i = 0; i < numRows; i++) { 
+                ciphertext.append(matrix[i][colIndex]); 
+            } 
+        } 
+        return ciphertext.toString(); 
+    } 
+ 
+    public static String decrypt(String ciphertext, String key) { 
+        key = key.toUpperCase(); 
+ 
+        int numCols = key.length(); 
+        int numRows = (int) Math.ceil((double) ciphertext.length() / numCols); 
+ 
+        char[][] matrix = new char[numRows][numCols]; 
+        int[] permutationOrder = getPermutationOrder(key); 
+ 
+        int charIndex = 0; 
+        for (int colOrderIndex = 0; colOrderIndex < numCols; colOrderIndex++) { 
+            int originalColIndex = permutationOrder[colOrderIndex]; 
+            for (int i = 0; i < numRows; i++) { 
+                matrix[i][originalColIndex] = ciphertext.charAt(charIndex++); 
+            } 
+        } 
+ 
+        StringBuilder plaintext = new StringBuilder(); 
+        for (int i = 0; i < numRows; i++) { 
+            for (int j = 0; j < numCols; j++) { 
+                if (matrix[i][j] != 'X') { // Remove padding 
+                    plaintext.append(matrix[i][j]); 
+                } 
+            } 
+        } 
+        return plaintext.toString(); 
+    } 
+ 
+    public static void main(String[] args) { 
+        Scanner scanner = new Scanner(System.in); 
+ 
+        System.out.print("Enter plaintext: "); 
+        String plaintext = scanner.nextLine(); 
+ 
+        System.out.print("Enter key: "); 
+        String key = scanner.nextLine(); 
+ 
+        String encryptedText = encrypt(plaintext, key); 
+        System.out.println("Encrypted text: " + encryptedText); 
+ 
+        String decryptedText = decrypt(encryptedText, key); 
+        System.out.println("Decrypted text: " + decryptedText); 
+ 
+        scanner.close(); 
+    } 
+} 
