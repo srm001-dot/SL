@@ -1,0 +1,193 @@
+import java.util.*;
+import java.io.*;
+
+public class Hillcipher {
+
+    public int keyinverse[][] = new int[3][3];
+    public int key[][] = { {17, 17, 5}, {21, 18, 21}, {2, 2, 19} };
+    public int plainmat[][] = new int[8][3];
+    public int ciphermat[][] = new int[8][3];
+    public String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    String plain, cipher;
+    int row, flag = 0, decrypt = 0;
+
+    public void matdisplay(int mat[][]) {
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < 3; j++)
+                System.out.print(mat[i][j] + " ");
+            System.out.println();
+        }
+    }
+
+    public void keydisplay(int mat[][]) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++)
+                System.out.print(mat[i][j] + " ");
+            System.out.println();
+        }
+    }
+
+    public void inverse() {
+        int dtrmnt = 0;
+        int mulinvdtrmnt = 0;
+        int x, y, z, i, j, a, tmp, p, q;
+
+        int transkey[][] = new int[3][3];
+        int minormat[][] = new int[3][3];
+        int temp[][] = new int[2][2];
+
+        keydisplay(key);
+
+        x = key[0][0] * ((key[1][1] * key[2][2]) - (key[1][2] * key[2][1]));
+        y = key[0][1] * ((key[1][0] * key[2][2]) - (key[1][2] * key[2][0]));
+        z = key[0][2] * ((key[1][0] * key[2][1]) - (key[1][1] * key[2][0]));
+
+        dtrmnt = (x - y + z) % 26;
+        if (dtrmnt < 0)
+            dtrmnt += 26;
+
+        a = dtrmnt;
+
+        for (i = 0; i < 26; i++) {
+            tmp = (a * i) % 26;
+            if (tmp == 1) {
+                mulinvdtrmnt = i;
+                break;
+            }
+        }
+
+        for (i = 0; i < 3; i++)
+            for (j = 0; j < 3; j++)
+                transkey[i][j] = key[j][i];
+
+        for (i = 0; i < 3; i++) {
+            for (j = 0; j < 3; j++) {
+                p = 0;
+                q = 0;
+
+                for (x = 0; x < 3; x++) {
+                    for (y = 0; y < 3; y++) {
+                        if ((x != i) && (y != j)) {
+                            temp[p][q] = transkey[x][y];
+                            q++;
+                            if (q == 2) {
+                                q = 0;
+                                p++;
+                            }
+                        }
+                    }
+                }
+
+                minormat[i][j] = (temp[0][0] * temp[1][1]) - (temp[0][1] * temp[1][0]);
+                minormat[i][j] = minormat[i][j] * (int) Math.pow(-1, (i + j));
+            }
+        }
+
+        for (i = 0; i < 3; i++) {
+            for (j = 0; j < 3; j++) {
+                keyinverse[i][j] = (mulinvdtrmnt * minormat[i][j]) % 26;
+                if (keyinverse[i][j] < 0)
+                    keyinverse[i][j] += 26;
+            }
+        }
+
+        keydisplay(keyinverse);
+    }
+
+    public void str2matrix(String text) {
+        if ((text.length() % 3) == 1) {
+            text += "XX";
+            flag = 2;
+        } else if ((text.length() % 3) == 2) {
+            text += "X";
+            flag = 1;
+        }
+
+        row = text.length() / 3;
+        int k = 0;
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int p = 0; p < 26; p++) {
+                    if (text.charAt(k) == ALPHABET.charAt(p)) {
+                        plainmat[i][j] = p;
+                        k++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public String matrix2str(int mat[][]) {
+        String txt = "";
+
+        for (int i = 0; i < row; i++)
+            for (int j = 0; j < 3; j++)
+                txt += ALPHABET.charAt(mat[i][j]);
+
+        if (decrypt == 1) {
+            if (flag == 1)
+                return txt.substring(0, txt.length() - 1);
+            if (flag == 2)
+                return txt.substring(0, txt.length() - 2);
+        }
+
+        return txt;
+    }
+
+    public String hcencryption(String ptxt) {
+        decrypt = 0;
+        str2matrix(ptxt);
+
+        int sum = 0;
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 3; k++)
+                    sum += plainmat[i][k] * key[k][j];
+                ciphermat[i][j] = sum % 26;
+                sum = 0;
+            }
+        }
+
+        return matrix2str(ciphermat);
+    }
+
+    public String hcdecryption(String ctxt) {
+        decrypt = 1;
+        str2matrix(ctxt);
+
+        int sum = 0;
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 3; k++)
+                    sum += plainmat[i][k] * keyinverse[k][j];
+                ciphermat[i][j] = sum % 26;
+                sum = 0;
+            }
+        }
+
+        return matrix2str(ciphermat);
+    }
+
+    public static void main(String[] args) {
+        Hillcipher hc = new Hillcipher();
+        Scanner sc = new Scanner(System.in);
+
+        hc.inverse();
+
+        System.out.println("Enter PLAIN TEXT");
+        String ptext = sc.next();
+
+        String ctext = hc.hcencryption(ptext);
+        System.out.println("CIPHER TEXT :" + ctext);
+
+        String plaintext = hc.hcdecryption(ctext);
+        System.out.println("PLAIN TEXT :" + plaintext);
+
+        sc.close();
+    }
+}
