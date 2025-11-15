@@ -1,104 +1,109 @@
-import java.util.Arrays; 
-import java.util.HashMap; 
-import java.util.Map; 
-import java.util.Scanner; 
- 
-public class ColumnarTranspositionCipher { 
- 
-    // Helper method to get the permutation order based on the key 
-    private static int[] getPermutationOrder(String key) { 
-        // Create a map to store character and its original index 
-        Map<Character, Integer> keyMap = new HashMap<>(); 
-        for (int i = 0; i < key.length(); i++) { 
-            keyMap.put(key.charAt(i), i); 
-        } 
- 
-        // Sort the key characters to determine the new column order 
-        char[] sortedKeyChars = key.toCharArray(); 
-        Arrays.sort(sortedKeyChars); 
- 
-        // Create an array to store the permutation order (original index of sorted characters) 
-        int[] permutationOrder = new int[key.length()]; 
-        for (int i = 0; i < key.length(); i++) { 
-            permutationOrder[i] = keyMap.get(sortedKeyChars[i]); 
-        } 
-        return permutationOrder; 
-    } 
- 
-    public static String encrypt(String plaintext, String key) { 
-        plaintext = plaintext.replaceAll(" ", "").toUpperCase(); // Remove spaces and convert to 
-uppercase 
-        key = key.toUpperCase(); 
- 
-        int numCols = key.length(); 
-        int numRows = (int) Math.ceil((double) plaintext.length() / numCols); 
- 
-        char[][] matrix = new char[numRows][numCols]; 
-        int k = 0; 
-        for (int i = 0; i < numRows; i++) { 
-            for (int j = 0; j < numCols; j++) { 
-                if (k < plaintext.length()) { 
-                    matrix[i][j] = plaintext.charAt(k++); 
-                } else { 
-                    matrix[i][j] = 'X'; // Padding with 'X' 
-                } 
-            } 
-        } 
- 
-        int[] permutationOrder = getPermutationOrder(key); 
-        StringBuilder ciphertext = new StringBuilder(); 
- 
-        for (int colIndex : permutationOrder) { 
-            for (int i = 0; i < numRows; i++) { 
-                ciphertext.append(matrix[i][colIndex]); 
-            } 
-        } 
-        return ciphertext.toString(); 
-    } 
- 
-    public static String decrypt(String ciphertext, String key) { 
-        key = key.toUpperCase(); 
- 
-        int numCols = key.length(); 
-        int numRows = (int) Math.ceil((double) ciphertext.length() / numCols); 
- 
-        char[][] matrix = new char[numRows][numCols]; 
-        int[] permutationOrder = getPermutationOrder(key); 
- 
-        int charIndex = 0; 
-        for (int colOrderIndex = 0; colOrderIndex < numCols; colOrderIndex++) { 
-            int originalColIndex = permutationOrder[colOrderIndex]; 
-            for (int i = 0; i < numRows; i++) { 
-                matrix[i][originalColIndex] = ciphertext.charAt(charIndex++); 
-            } 
-        } 
- 
-        StringBuilder plaintext = new StringBuilder(); 
-        for (int i = 0; i < numRows; i++) { 
-            for (int j = 0; j < numCols; j++) { 
-                if (matrix[i][j] != 'X') { // Remove padding 
-                    plaintext.append(matrix[i][j]); 
-                } 
-            } 
-        } 
-        return plaintext.toString(); 
-    } 
- 
-    public static void main(String[] args) { 
-        Scanner scanner = new Scanner(System.in); 
- 
-        System.out.print("Enter plaintext: "); 
-        String plaintext = scanner.nextLine(); 
- 
-        System.out.print("Enter key: "); 
-        String key = scanner.nextLine(); 
- 
-        String encryptedText = encrypt(plaintext, key); 
-        System.out.println("Encrypted text: " + encryptedText); 
- 
-        String decryptedText = decrypt(encryptedText, key); 
-        System.out.println("Decrypted text: " + decryptedText); 
- 
-        scanner.close(); 
-    } 
-} 
+import java.util.*;
+
+public class ColumnarTranspositionCipher {
+
+    private static int[] getPermutationOrder(String key) {
+        int len = key.length();
+        Character[] chars = new Character[len];
+
+        for (int i = 0; i < len; i++) {
+            chars[i] = key.charAt(i);
+        }
+
+        Character[] sorted = chars.clone();
+        Arrays.sort(sorted);
+
+        int[] order = new int[len];
+        boolean[] used = new boolean[len];
+
+        for (int i = 0; i < len; i++) {
+            char c = sorted[i];
+            for (int j = 0; j < len; j++) {
+                if (chars[j] == c && !used[j]) {
+                    order[i] = j;
+                    used[j] = true;
+                    break;
+                }
+            }
+        }
+        return order;
+    }
+
+    public static String encrypt(String plaintext, String key) {
+        plaintext = plaintext.replaceAll(" ", "").toUpperCase();
+        key = key.toUpperCase();
+
+        int cols = key.length();
+        int rows = (int) Math.ceil((double) plaintext.length() / cols);
+
+        char[][] matrix = new char[rows][cols];
+        int k = 0;
+
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                if (k < plaintext.length()) {
+                    matrix[i][j] = plaintext.charAt(k++);
+                } else {
+                    matrix[i][j] = 'X';
+                }
+            }
+        }
+
+        int[] order = getPermutationOrder(key);
+        StringBuilder cipher = new StringBuilder();
+
+        for (int col : order) {
+            for (int i = 0; i < rows; i++) {
+                cipher.append(matrix[i][col]);
+            }
+        }
+        return cipher.toString();
+    }
+
+    public static String decrypt(String ciphertext, String key) {
+        key = key.toUpperCase();
+
+        int cols = key.length();
+        int rows = (int) Math.ceil((double) ciphertext.length() / cols);
+
+        char[][] matrix = new char[rows][cols];
+        int[] order = getPermutationOrder(key);
+
+        int idx = 0;
+        for (int k = 0; k < cols; k++) {
+            int col = order[k];
+            for (int i = 0; i < rows; i++) {
+                matrix[i][col] = ciphertext.charAt(idx++);
+            }
+        }
+
+        StringBuilder plain = new StringBuilder();
+
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                if (matrix[i][j] != 'X') {
+                    plain.append(matrix[i][j]);
+                }
+            }
+        }
+        return plain.toString();
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter plaintext: ");
+        String plaintext = sc.nextLine();
+
+        System.out.print("Enter key: ");
+        String key = sc.nextLine();
+
+        String encrypted = encrypt(plaintext, key);
+        System.out.println("Encrypted text: " + encrypted);
+
+        String decrypted = decrypt(encrypted, key);
+        System.out.println("Decrypted text: " + decrypted);
+
+        sc.close();
+    }
+}
