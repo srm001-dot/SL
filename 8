@@ -1,77 +1,49 @@
-import java.util.*;
 import java.math.BigInteger;
+import java.security.SecureRandom;
 
-class dsaAlg {
+public class dsaAlg {
 
-    static final BigInteger ONE = BigInteger.ONE;
-    static final BigInteger ZERO = BigInteger.ZERO;
+    static SecureRandom r = new SecureRandom();
 
-    public static BigInteger getNextPrime(String ans) {
-        BigInteger test = new BigInteger(ans);
-        while (!test.isProbablePrime(99)) {
-            test = test.add(ONE);
-        }
-        return test;
-    }
+    public static void main(String[] args) {
 
-    public static BigInteger findQ(BigInteger n) {
-        BigInteger q = n;
-        while (!q.isProbablePrime(99)) {
-            q = q.subtract(ONE);
-        }
-        return q;
-    }
+        BigInteger q = new BigInteger("127");
+        BigInteger p = new BigInteger("1193"); 
+        BigInteger g = new BigInteger("596");
 
-    public static BigInteger getGen(BigInteger p, BigInteger q, Random r) {
-        BigInteger h;
-        do {
-            h = new BigInteger(p.bitLength(), r).mod(p);
-        } while (h.equals(ZERO) || h.equals(ONE));
-
-        return h.modPow((p.subtract(ONE)).divide(q), p);
-    }
-
-    public static void main(String[] args) throws Exception {
-        Random r = new Random();
-
-        BigInteger p = getNextPrime("10600");
-        BigInteger q = findQ(p.subtract(ONE));
-        BigInteger g = getGen(p, q, r);
-
-        System.out.println("Digital Signature Algorithm");
-        System.out.println("p: " + p);
-        System.out.println("q: " + q);
-        System.out.println("g: " + g);
-
-        BigInteger x = new BigInteger(q.bitLength(), r).mod(q);
+        BigInteger x = new BigInteger("77");
         BigInteger y = g.modPow(x, p);
 
-        BigInteger k = new BigInteger(q.bitLength(), r).mod(q);
+        BigInteger k;
+        do {
+            k = new BigInteger("113");
+        } while (k.mod(q).equals(BigInteger.ZERO));
+
         BigInteger rVal = g.modPow(k, p).mod(q);
 
-        BigInteger hash = new BigInteger(q.bitLength(), r);
+        BigInteger hash = new BigInteger("88");
+
         BigInteger s = k.modInverse(q)
                 .multiply(hash.add(x.multiply(rVal)))
                 .mod(q);
 
-        System.out.println("x (private): " + x);
-        System.out.println("k (secret): " + k);
-        System.out.println("y (public): " + y);
-        System.out.println("hash: " + hash);
-
-        System.out.println("Signature:");
+        System.out.println("p: " + p);
+        System.out.println("q: " + q);
+        System.out.println("g: " + g);
+        System.out.println("x: " + x);
+        System.out.println("y: " + y);
         System.out.println("r: " + rVal);
         System.out.println("s: " + s);
 
         BigInteger w = s.modInverse(q);
         BigInteger u1 = hash.multiply(w).mod(q);
         BigInteger u2 = rVal.multiply(w).mod(q);
-        BigInteger v = g.modPow(u1, p).multiply(y.modPow(u2, p)).mod(p).mod(q);
 
-        System.out.println("Verification:");
-        System.out.println("w: " + w);
-        System.out.println("u1: " + u1);
-        System.out.println("u2: " + u2);
+        BigInteger v = g.modPow(u1, p)
+                .multiply(y.modPow(u2, p))
+                .mod(p)
+                .mod(q);
+
         System.out.println("v: " + v);
 
         if (v.equals(rVal))
