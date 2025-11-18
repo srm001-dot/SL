@@ -1,0 +1,66 @@
+import java.util.*;
+
+class HillCipher{
+	static int[][] key={
+		{6,24,1},
+		{13,16,10},
+		{20,17,15}
+	};
+	static int[][] invK={
+		{8,5,10},
+		{21,8,21},
+		{21,12,8}
+	};
+	static int mod26(int x){
+		return (x % 26 + 26)% 26;
+	}
+	static String encrypt(String p){
+		while(p.length() % 3 != 0)
+			p+="x";
+		
+		StringBuilder c = new StringBuilder();
+		for(int i=0;i<p.length();i+=3){
+			int a = p.charAt(i) - 'a';
+			int b = p.charAt(i+1) - 'a';
+			int d = p.charAt(i+2) - 'a';
+			
+			int c1 = mod26(a * key[0][0] + b * key[0][1] + d * key[0][2]);
+ 			int c2 = mod26(a * key[1][0] + b * key[1][1] + d * key[1][2]);
+			int c3 = mod26(a * key[2][0] + b * key[2][1] + d * key[2][2]);
+			
+			c.append((char)(c1 + 'a'));
+			c.append((char)(c2 + 'a'));
+			c.append((char)(c3 + 'a'));
+		}
+		return c.toString();
+	}
+
+	static String decryption(String c){
+
+		StringBuilder p = new StringBuilder();
+		for(int i=0;i<c.length();i+=3){
+			int a = c.charAt(i) - 'a';
+			int b = c.charAt(i+1) - 'a';
+			int d = c.charAt(i+2) - 'a';
+			
+			int p1 = mod26(a * invK[0][0] + b * invK[0][1] + d * invK[0][2]);
+ 			int p2 = mod26(a * invK[1][0] + b * invK[1][1] + d * invK[1][2]);
+			int p3 = mod26(a * invK[2][0] + b * invK[2][1] + d * invK[2][2]);
+			
+			p.append((char)(p1 + 'a'));
+			p.append((char)(p2 + 'a'));
+			p.append((char)(p3 + 'a'));
+		}
+		return p.toString();
+	}
+
+	public static void main(String[] args){
+		Scanner sc = new Scanner(System.in);
+		System.out.println("Enter Plain Text:");
+		String text = sc.next().toLowerCase();
+		String cipher = encrypt(text);
+		System.out.println("Cipher Text:"+cipher);
+		String plain = decryption(cipher);
+		System.out.println("Plain Text:"+plain);
+}
+}
